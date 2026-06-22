@@ -90,4 +90,4 @@ open dist/AlwaysOnline.app
 
 ## License
 
-No license has been selected yet. All rights reserved unless a license is added later.
+AlwaysOnline is released under the [MIT License](LICENSE).
