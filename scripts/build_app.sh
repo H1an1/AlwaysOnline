@@ -12,6 +12,7 @@ DMG_BACKGROUND_NAME="DmgBackground.png"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+APP_ICON_SOURCE_PATH="$ROOT_DIR/Resources/AppIcon.icns"
 
 clear_bundle_finder_info() {
     local bundle_path="$1"
@@ -79,7 +80,9 @@ cp "$BIN_DIR/AlwaysOnline" "$MACOS_DIR/AlwaysOnline"
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$ROOT_DIR/Resources/MenuBarIcon.png" "$RESOURCES_DIR/MenuBarIcon.png"
 cp "$ROOT_DIR/Resources/MenuBarIconShake.png" "$RESOURCES_DIR/MenuBarIconShake.png"
-cp "$ROOT_DIR/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+APP_ICON_FILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$CONTENTS_DIR/Info.plist")"
+APP_ICON_FILE_NAME="${APP_ICON_FILE_NAME%.icns}.icns"
+cp "$APP_ICON_SOURCE_PATH" "$RESOURCES_DIR/$APP_ICON_FILE_NAME"
 chmod +x "$MACOS_DIR/AlwaysOnline"
 
 sign_bundle "$APP_DIR"
