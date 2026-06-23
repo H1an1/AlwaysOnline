@@ -10,6 +10,15 @@ final class StatusItemPresentationTests: XCTestCase {
         XCTAssertEqual(StatusItemPresentation.thresholdMenuTitle, "Wiggle After")
     }
 
+    func testWiggleDistanceMenuTitleNamesSliderControl() {
+        XCTAssertEqual(StatusItemPresentation.wiggleDistanceMenuTitle, "Wiggle Distance")
+    }
+
+    func testWiggleDistanceValueTitleShowsPixels() {
+        XCTAssertEqual(StatusItemPresentation.wiggleDistanceValueTitle(16), "16 px")
+        XCTAssertEqual(StatusItemPresentation.wiggleDistanceValueTitle(120), "120 px")
+    }
+
     func testThresholdPresetTitlesExplainDurationUntilTrigger() {
         XCTAssertEqual(
             StatusItemPresentation.thresholdPresetTitles,

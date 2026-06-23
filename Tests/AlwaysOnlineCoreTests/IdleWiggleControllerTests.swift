@@ -6,6 +6,20 @@ final class IdleWiggleControllerTests: XCTestCase {
         XCTAssertEqual(ActivitySettings.defaults.wiggleDistance, 16)
     }
 
+    func testWiggleDistanceCannotExceedSliderMaximum() {
+        let settings = ActivitySettings(
+            isEnabled: true,
+            checkInterval: 10,
+            idleThreshold: 60,
+            wiggleDistance: 240,
+            wiggleRepetitions: 2,
+            cooldown: 30
+        )
+
+        XCTAssertEqual(settings.wiggleDistance, ActivitySettings.maximumWiggleDistance)
+        XCTAssertEqual(ActivitySettings.maximumWiggleDistance, 120)
+    }
+
     func testDisabledSettingsNeverWiggle() {
         let controller = IdleWiggleController()
         let settings = ActivitySettings(

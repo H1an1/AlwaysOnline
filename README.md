@@ -20,6 +20,7 @@ For the current release, open the DMG, drag `AlwaysOnline.app` into `Application
 - No Dock icon and no always-open window.
 - Automatically wiggles the cursor after keyboard and mouse inactivity.
 - Configurable trigger timing: 30 seconds, 1 minute, or 5 minutes.
+- Adjustable wiggle distance from 1 to 120 pixels.
 - Two menu bar icon states: idle and enabled/wiggle-ready.
 - First-run Accessibility permission prompt.
 - Settings are saved locally with `UserDefaults`.
@@ -39,13 +40,13 @@ If permission is missing, the menu shows `No accessibility permission`.
 
 ## How It Works
 
-AlwaysOnline checks system idle time on a timer. When the app is enabled and the idle duration reaches the selected trigger timing, it gently wiggles the cursor twice with a short horizontal movement, then returns to the original position.
+AlwaysOnline checks system idle time on a timer. When the app is enabled and the idle duration reaches the selected trigger timing, it gently wiggles the cursor twice with a short horizontal movement, then returns to the original position. Use the `Wiggle Distance` slider in the menu to adjust how far the cursor moves.
 
 Default behavior:
 
 - Checks every 10 seconds.
 - Triggers after 1 minute of inactivity.
-- Moves 16 pixels horizontally.
+- Moves 16 pixels horizontally by default.
 - Repeats the wiggle twice.
 - Uses a short cooldown so it does not repeat continuously.
 

@@ -8,6 +8,9 @@ public struct ActivitySettings: Equatable, Sendable {
     public var wiggleRepetitions: Int
     public var cooldown: TimeInterval
 
+    public static let minimumWiggleDistance: Double = 1
+    public static let maximumWiggleDistance: Double = 120
+
     public static let defaults = ActivitySettings(
         isEnabled: true,
         checkInterval: 10,
@@ -28,8 +31,16 @@ public struct ActivitySettings: Equatable, Sendable {
         self.isEnabled = isEnabled
         self.checkInterval = max(1, checkInterval)
         self.idleThreshold = max(1, idleThreshold)
-        self.wiggleDistance = max(1, wiggleDistance)
+        self.wiggleDistance = Self.clampedWiggleDistance(wiggleDistance)
         self.wiggleRepetitions = max(1, wiggleRepetitions)
         self.cooldown = max(1, cooldown)
+    }
+
+    public static func clampedWiggleDistance(_ value: Double) -> Double {
+        guard value.isFinite else {
+            return minimumWiggleDistance
+        }
+
+        return min(maximumWiggleDistance, max(minimumWiggleDistance, value))
     }
 }

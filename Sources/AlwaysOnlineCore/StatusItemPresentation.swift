@@ -3,6 +3,7 @@ import Foundation
 public enum StatusItemPresentation {
     public static let title = ""
     public static let thresholdMenuTitle = "Wiggle After"
+    public static let wiggleDistanceMenuTitle = "Wiggle Distance"
     public static let permissionMissingMessage = "No Accessibility Permission"
     public static let statusRefreshInterval: TimeInterval = 1
 
@@ -18,6 +19,10 @@ public enum StatusItemPresentation {
 
     public static func permissionMessage(isAccessibilityTrusted: Bool) -> String? {
         isAccessibilityTrusted ? nil : permissionMissingMessage
+    }
+
+    public static func wiggleDistanceValueTitle(_ distance: Double) -> String {
+        "\(Int(distance.rounded())) px"
     }
 
     public static func shouldRequestInitialAccessibilityPrompt(

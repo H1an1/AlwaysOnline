@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let controller = IdleWiggleController()
     private let idleThresholdKey = "idleThreshold"
     private let enabledKey = "isEnabled"
+    private let wiggleDistanceKey = "wiggleDistance"
     private let accessibilityPromptInstallTokenKey = "accessibilityPromptInstallToken"
 
     private var timer: Timer?
@@ -17,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menu = NSMenu()
     private var settings = ActivitySettings.defaults
     private var lastKnownAccessibilityTrust: Bool?
+    private weak var wiggleDistanceValueLabel: NSTextField?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = loadSettings()
@@ -62,6 +64,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildMenu()
     }
 
+    @objc private func setWiggleDistance(_ sender: NSSlider) {
+        let distance = ActivitySettings.clampedWiggleDistance(sender.doubleValue.rounded())
+
+        settings.wiggleDistance = distance
+        sender.doubleValue = distance
+        wiggleDistanceValueLabel?.stringValue = StatusItemPresentation.wiggleDistanceValueTitle(distance)
+        UserDefaults.standard.set(distance, forKey: wiggleDistanceKey)
+        controller.resetCooldown()
+    }
+
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
     }
@@ -76,6 +88,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let savedThreshold = UserDefaults.standard.double(forKey: idleThresholdKey)
         if savedThreshold > 0 {
             loaded.idleThreshold = savedThreshold
+        }
+
+        let savedWiggleDistance = UserDefaults.standard.double(forKey: wiggleDistanceKey)
+        if savedWiggleDistance > 0 {
+            loaded.wiggleDistance = ActivitySettings.clampedWiggleDistance(savedWiggleDistance)
         }
 
         return loaded
@@ -142,6 +159,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         thresholdItem.submenu = thresholdMenu
         nextMenu.addItem(thresholdItem)
 
+        addWiggleDistanceItem(to: nextMenu)
+
+        nextMenu.addItem(.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         nextMenu.addItem(quitItem)
@@ -158,6 +179,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.representedObject = value
         item.state = settings.idleThreshold == value ? .on : .off
         menu.addItem(item)
+    }
+
+    private func addWiggleDistanceItem(to menu: NSMenu) {
+        let width: CGFloat = 240
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 58))
+
+        let titleLabel = NSTextField(labelWithString: StatusItemPresentation.wiggleDistanceMenuTitle)
+        titleLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
+        titleLabel.frame = NSRect(x: 16, y: 34, width: 140, height: 18)
+        view.addSubview(titleLabel)
+
+        let valueLabel = NSTextField(
+            labelWithString: StatusItemPresentation.wiggleDistanceValueTitle(settings.wiggleDistance)
+        )
+        valueLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
+        valueLabel.alignment = .right
+        valueLabel.frame = NSRect(x: width - 78, y: 34, width: 62, height: 18)
+        view.addSubview(valueLabel)
+
+        let slider = NSSlider(
+            value: settings.wiggleDistance,
+            minValue: ActivitySettings.minimumWiggleDistance,
+            maxValue: ActivitySettings.maximumWiggleDistance,
+            target: self,
+            action: #selector(setWiggleDistance(_:))
+        )
+        slider.isContinuous = true
+        slider.controlSize = .small
+        slider.frame = NSRect(x: 14, y: 8, width: width - 28, height: 24)
+        view.addSubview(slider)
+
+        let item = NSMenuItem()
+        item.view = view
+        menu.addItem(item)
+        wiggleDistanceValueLabel = valueLabel
     }
 
     private func startTimer() {
