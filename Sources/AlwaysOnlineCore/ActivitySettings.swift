@@ -12,7 +12,7 @@ public struct ActivitySettings: Equatable, Sendable {
         isEnabled: true,
         checkInterval: 10,
         idleThreshold: 60,
-        wiggleDistance: 8,
+        wiggleDistance: 16,
         wiggleRepetitions: 2,
         cooldown: 30
     )

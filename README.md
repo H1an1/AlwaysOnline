@@ -45,7 +45,7 @@ Default behavior:
 
 - Checks every 10 seconds.
 - Triggers after 1 minute of inactivity.
-- Moves 8 pixels horizontally.
+- Moves 16 pixels horizontally.
 - Repeats the wiggle twice.
 - Uses a short cooldown so it does not repeat continuously.
 

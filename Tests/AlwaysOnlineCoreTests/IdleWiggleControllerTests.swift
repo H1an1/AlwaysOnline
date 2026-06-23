@@ -2,6 +2,10 @@ import XCTest
 @testable import AlwaysOnlineCore
 
 final class IdleWiggleControllerTests: XCTestCase {
+    func testDefaultWiggleDistanceIsLargeEnoughToBeVisible() {
+        XCTAssertEqual(ActivitySettings.defaults.wiggleDistance, 16)
+    }
+
     func testDisabledSettingsNeverWiggle() {
         let controller = IdleWiggleController()
         let settings = ActivitySettings(
