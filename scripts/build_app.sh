@@ -32,10 +32,13 @@ clear_bundle_finder_info() {
 
 sign_bundle() {
     local bundle_path="$1"
+    local bundle_id
+
+    bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle_path/Contents/Info.plist")"
 
     for _ in 1 2 3 4 5; do
         clear_bundle_finder_info "$bundle_path"
-        if codesign --force --deep --sign - "$bundle_path"; then
+        if codesign --force --deep --sign - --requirements "=designated => identifier \"$bundle_id\"" "$bundle_path"; then
             if verify_bundle_clean "$bundle_path"; then
                 return 0
             fi

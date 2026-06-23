@@ -32,4 +32,11 @@ public enum StatusItemPresentation {
     ) -> Bool {
         !isAccessibilityTrusted && lastPromptedInstallToken != currentInstallToken
     }
+
+    public static func accessibilityPromptInstallToken(
+        bundleIdentifier: String?,
+        bundlePath: String
+    ) -> String {
+        "\(bundleIdentifier ?? "unknown-bundle-id")|\(bundlePath)"
+    }
 }

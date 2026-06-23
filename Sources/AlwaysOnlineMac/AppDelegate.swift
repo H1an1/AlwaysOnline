@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menu = NSMenu()
     private var settings = ActivitySettings.defaults
     private var lastKnownAccessibilityTrust: Bool?
-    private weak var wiggleDistanceValueLabel: NSTextField?
+    private var wiggleDistanceValueLabel: NSTextField?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = loadSettings()
@@ -70,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.wiggleDistance = distance
         sender.doubleValue = distance
         wiggleDistanceValueLabel?.stringValue = StatusItemPresentation.wiggleDistanceValueTitle(distance)
+        wiggleDistanceValueLabel?.needsDisplay = true
         UserDefaults.standard.set(distance, forKey: wiggleDistanceKey)
         controller.resetCooldown()
     }
@@ -182,12 +183,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func addWiggleDistanceItem(to menu: NSMenu) {
-        let width: CGFloat = 240
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 58))
+        let width: CGFloat = 430
+        let textLeft: CGFloat = 48
+        let contentRight: CGFloat = 32
+        let labelHeight: CGFloat = 22
+        let valueWidth: CGFloat = 74
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 62))
 
         let titleLabel = NSTextField(labelWithString: StatusItemPresentation.wiggleDistanceMenuTitle)
         titleLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
-        titleLabel.frame = NSRect(x: 16, y: 34, width: 140, height: 18)
+        titleLabel.frame = NSRect(
+            x: textLeft,
+            y: 36,
+            width: width - textLeft - contentRight - valueWidth - 8,
+            height: labelHeight
+        )
         view.addSubview(titleLabel)
 
         let valueLabel = NSTextField(
@@ -195,7 +205,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         valueLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
         valueLabel.alignment = .right
-        valueLabel.frame = NSRect(x: width - 78, y: 34, width: 62, height: 18)
+        valueLabel.frame = NSRect(
+            x: width - contentRight - valueWidth,
+            y: 36,
+            width: valueWidth,
+            height: labelHeight
+        )
         view.addSubview(valueLabel)
 
         let slider = NSSlider(
@@ -207,7 +222,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         slider.isContinuous = true
         slider.controlSize = .small
-        slider.frame = NSRect(x: 14, y: 8, width: width - 28, height: 24)
+        slider.sendAction(on: [.leftMouseDragged, .leftMouseUp])
+        slider.frame = NSRect(
+            x: textLeft,
+            y: 8,
+            width: width - textLeft - contentRight,
+            height: 24
+        )
         view.addSubview(slider)
 
         let item = NSMenuItem()
@@ -290,13 +311,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func currentAccessibilityPromptInstallToken() -> String {
-        let bundlePath = Bundle.main.bundlePath
-        let bundleVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-        let executableModifiedAt = Bundle.main.executableURL
-            .flatMap { try? FileManager.default.attributesOfItem(atPath: $0.path)[.modificationDate] as? Date }
-            .map { Int($0.timeIntervalSince1970) } ?? 0
-
-        return "\(bundlePath)|\(bundleVersion)|\(executableModifiedAt)"
+        StatusItemPresentation.accessibilityPromptInstallToken(
+            bundleIdentifier: Bundle.main.bundleIdentifier,
+            bundlePath: Bundle.main.bundlePath
+        )
     }
 
     private func observeActivationNotifications() {

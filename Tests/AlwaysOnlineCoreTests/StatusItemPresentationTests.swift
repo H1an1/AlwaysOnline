@@ -80,6 +80,23 @@ final class StatusItemPresentationTests: XCTestCase {
         )
     }
 
+    func testAccessibilityPromptInstallTokenUsesStableAppIdentityAndPath() {
+        XCTAssertEqual(
+            StatusItemPresentation.accessibilityPromptInstallToken(
+                bundleIdentifier: "io.github.h1an1.AlwaysOnline",
+                bundlePath: "/Applications/AlwaysOnline.app"
+            ),
+            "io.github.h1an1.AlwaysOnline|/Applications/AlwaysOnline.app"
+        )
+        XCTAssertEqual(
+            StatusItemPresentation.accessibilityPromptInstallToken(
+                bundleIdentifier: nil,
+                bundlePath: "/Applications/AlwaysOnline.app"
+            ),
+            "unknown-bundle-id|/Applications/AlwaysOnline.app"
+        )
+    }
+
     func testStatusRefreshIntervalIsFastEnoughForPermissionChanges() {
         XCTAssertLessThanOrEqual(StatusItemPresentation.statusRefreshInterval, 1)
     }

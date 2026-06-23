@@ -3,14 +3,19 @@ import Foundation
 
 enum AccessibilityPermission {
     static var isTrusted: Bool {
-        AXIsProcessTrusted()
+        checkTrust(prompt: false)
     }
 
-    static func requestPrompt() {
+    @discardableResult
+    static func requestPrompt() -> Bool {
+        checkTrust(prompt: true)
+    }
+
+    private static func checkTrust(prompt: Bool) -> Bool {
         let options = [
-            "AXTrustedCheckOptionPrompt": true
+            "AXTrustedCheckOptionPrompt": prompt
         ] as CFDictionary
 
-        _ = AXIsProcessTrustedWithOptions(options)
+        return AXIsProcessTrustedWithOptions(options)
     }
 }

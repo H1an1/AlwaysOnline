@@ -29,6 +29,8 @@ For the current release, open the DMG, drag `AlwaysOnline.app` into `Application
 
 macOS requires Accessibility permission before any app can post mouse events. AlwaysOnline asks for this permission the first time it opens.
 
+Version `0.1.8` uses the stable bundle identifier `io.github.h1an1.AlwaysOnline`. If you are upgrading from an older local build and macOS shows two AlwaysOnline entries, remove the old entry and enable the new one once.
+
 To enable it manually:
 
 1. Open `System Settings`.
@@ -36,7 +38,7 @@ To enable it manually:
 3. Enable `AlwaysOnline`.
 4. Quit and reopen AlwaysOnline if macOS does not apply the permission immediately.
 
-If permission is missing, the menu shows `No accessibility permission`.
+If permission is missing, the menu shows `No Accessibility Permission`.
 
 ## How It Works
 
