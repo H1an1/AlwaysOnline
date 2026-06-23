@@ -95,6 +95,7 @@ hdiutil create \
     "$DMG_RW_PATH" >/dev/null
 
 MOUNT_POINT=""
+FINDER_DISK_NAME=""
 cleanup_mount() {
     if [[ -n "$MOUNT_POINT" && -d "$MOUNT_POINT" ]]; then
         hdiutil detach "$MOUNT_POINT" >/dev/null 2>&1 ||
@@ -110,6 +111,7 @@ if [[ -z "$MOUNT_POINT" ]]; then
     echo "Could not mount writable DMG" >&2
     exit 1
 fi
+FINDER_DISK_NAME="$(basename "$MOUNT_POINT")"
 
 ditto --norsrc --noextattr --noqtn "$APP_DIR" "$MOUNT_POINT/AlwaysOnline.app"
 ln -s /Applications "$MOUNT_POINT/Applications"
@@ -120,7 +122,7 @@ SetFile -a V "$MOUNT_POINT/.background" 2>/dev/null || true
 osascript <<APPLESCRIPT
 set backgroundPicture to POSIX file "$MOUNT_POINT/.background/$DMG_BACKGROUND_NAME" as alias
 tell application "Finder"
-    tell disk "$VOLUME_NAME"
+    tell disk "$FINDER_DISK_NAME"
         open
         delay 0.5
         set current view of container window to icon view
@@ -152,11 +154,31 @@ tell application "Finder"
 end tell
 APPLESCRIPT
 
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if [[ -s "$MOUNT_POINT/.DS_Store" ]]; then
+        break
+    fi
+    sleep 0.2
+done
+
+if [[ ! -s "$MOUNT_POINT/.DS_Store" ]]; then
+    echo "Finder layout was not written to $MOUNT_POINT/.DS_Store" >&2
+    exit 1
+fi
+
+if ! strings "$MOUNT_POINT/.DS_Store" | grep -q "$DMG_BACKGROUND_NAME"; then
+    echo "Finder layout does not reference $DMG_BACKGROUND_NAME" >&2
+    exit 1
+fi
+
+sync
+
 clear_bundle_finder_info "$MOUNT_POINT/AlwaysOnline.app"
 verify_bundle_clean "$MOUNT_POINT/AlwaysOnline.app"
 hdiutil detach "$MOUNT_POINT" >/dev/null ||
     hdiutil detach -force "$MOUNT_POINT" >/dev/null
 MOUNT_POINT=""
+FINDER_DISK_NAME=""
 
 hdiutil convert "$DMG_RW_PATH" -format UDZO -o "$DMG_PATH" >/dev/null
 rm -f "$DMG_RW_PATH"
