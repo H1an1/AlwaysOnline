@@ -18,7 +18,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menu = NSMenu()
     private var settings = ActivitySettings.defaults
     private var lastKnownAccessibilityTrust: Bool?
-    private var wiggleDistanceValueLabel: NSTextField?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = loadSettings()
@@ -65,12 +64,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func setWiggleDistance(_ sender: NSSlider) {
-        let distance = ActivitySettings.clampedWiggleDistance(sender.doubleValue.rounded())
-
+        // The slider snaps between discrete stops; its value is the stop index.
+        let stops = ActivitySettings.wiggleDistanceStops
+        let index = min(max(Int(sender.doubleValue.rounded()), 0), stops.count - 1)
+        let distance = stops[index]
         settings.wiggleDistance = distance
-        sender.doubleValue = distance
-        wiggleDistanceValueLabel?.stringValue = StatusItemPresentation.wiggleDistanceValueTitle(distance)
-        wiggleDistanceValueLabel?.needsDisplay = true
         UserDefaults.standard.set(distance, forKey: wiggleDistanceKey)
         controller.resetCooldown()
     }
@@ -183,58 +181,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func addWiggleDistanceItem(to menu: NSMenu) {
-        let width: CGFloat = 430
-        let textLeft: CGFloat = 48
-        let contentRight: CGFloat = 32
-        let labelHeight: CGFloat = 22
-        let valueWidth: CGFloat = 74
+        let stops = ActivitySettings.wiggleDistanceStops
+        let width: CGFloat = 340
+        let textLeft: CGFloat = 23
+        let contentRight: CGFloat = 24
+        let trackWidth = width - textLeft - contentRight
         let view = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 62))
 
         let titleLabel = NSTextField(labelWithString: StatusItemPresentation.wiggleDistanceMenuTitle)
         titleLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
-        titleLabel.frame = NSRect(
-            x: textLeft,
-            y: 36,
-            width: width - textLeft - contentRight - valueWidth - 8,
-            height: labelHeight
-        )
+        titleLabel.frame = NSRect(x: textLeft, y: 42, width: trackWidth, height: 20)
         view.addSubview(titleLabel)
 
-        let valueLabel = NSTextField(
-            labelWithString: StatusItemPresentation.wiggleDistanceValueTitle(settings.wiggleDistance)
-        )
-        valueLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
-        valueLabel.alignment = .right
-        valueLabel.frame = NSRect(
-            x: width - contentRight - valueWidth,
-            y: 36,
-            width: valueWidth,
-            height: labelHeight
-        )
-        view.addSubview(valueLabel)
-
-        let slider = NSSlider(
-            value: settings.wiggleDistance,
-            minValue: ActivitySettings.minimumWiggleDistance,
-            maxValue: ActivitySettings.maximumWiggleDistance,
-            target: self,
-            action: #selector(setWiggleDistance(_:))
-        )
+        // Discrete slider that snaps between the preset stops; its value is the stop
+        // index. The static scale labels below provide the read-out, so nothing needs
+        // to repaint during the drag (which an NSMenu won't do for custom views).
+        let slider = NSSlider(frame: NSRect(x: textLeft, y: 18, width: trackWidth, height: 20))
+        slider.minValue = 0
+        slider.maxValue = Double(stops.count - 1)
+        slider.numberOfTickMarks = stops.count
+        slider.allowsTickMarkValuesOnly = true
+        slider.tickMarkPosition = .below
         slider.isContinuous = true
         slider.controlSize = .small
+        let currentIndex = stops.firstIndex(of: ActivitySettings.nearestWiggleStop(settings.wiggleDistance)) ?? 0
+        slider.doubleValue = Double(currentIndex)
+        slider.target = self
+        slider.action = #selector(setWiggleDistance(_:))
         slider.sendAction(on: [.leftMouseDragged, .leftMouseUp])
-        slider.frame = NSRect(
-            x: textLeft,
-            y: 8,
-            width: width - textLeft - contentRight,
-            height: 24
-        )
         view.addSubview(slider)
+
+        // Static scale labels, centered under each tick.
+        let knobInset = (slider.cell as? NSSliderCell)?.knobThickness ?? 11
+        let usableWidth = trackWidth - knobInset
+        for (index, stop) in stops.enumerated() {
+            let label = NSTextField(labelWithString: String(Int(stop)))
+            label.font = .menuFont(ofSize: NSFont.smallSystemFontSize)
+            label.textColor = .secondaryLabelColor
+            label.alignment = .center
+            let labelWidth: CGFloat = 34
+            let tickCenter = textLeft + knobInset / 2 + usableWidth * CGFloat(index) / CGFloat(stops.count - 1)
+            var x = tickCenter - labelWidth / 2
+            x = min(max(x, 0), width - labelWidth)
+            label.frame = NSRect(x: x, y: 2, width: labelWidth, height: 13)
+            view.addSubview(label)
+        }
 
         let item = NSMenuItem()
         item.view = view
         menu.addItem(item)
-        wiggleDistanceValueLabel = valueLabel
     }
 
     private func startTimer() {

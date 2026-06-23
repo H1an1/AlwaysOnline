@@ -9,13 +9,16 @@ public struct ActivitySettings: Equatable, Sendable {
     public var cooldown: TimeInterval
 
     public static let minimumWiggleDistance: Double = 1
-    public static let maximumWiggleDistance: Double = 120
+    public static let maximumWiggleDistance: Double = 160
+
+    /// Preset snap points for the wiggle-distance slider (px).
+    public static let wiggleDistanceStops: [Double] = [1, 40, 80, 120, 160]
 
     public static let defaults = ActivitySettings(
         isEnabled: true,
         checkInterval: 10,
         idleThreshold: 60,
-        wiggleDistance: 16,
+        wiggleDistance: 40,
         wiggleRepetitions: 2,
         cooldown: 30
     )
@@ -42,5 +45,11 @@ public struct ActivitySettings: Equatable, Sendable {
         }
 
         return min(maximumWiggleDistance, max(minimumWiggleDistance, value))
+    }
+
+    /// Snaps an arbitrary distance to the closest preset stop.
+    public static func nearestWiggleStop(_ value: Double) -> Double {
+        let clamped = clampedWiggleDistance(value)
+        return wiggleDistanceStops.min(by: { abs($0 - clamped) < abs($1 - clamped) }) ?? clamped
     }
 }

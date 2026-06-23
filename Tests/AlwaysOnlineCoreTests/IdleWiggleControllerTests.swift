@@ -3,7 +3,7 @@ import XCTest
 
 final class IdleWiggleControllerTests: XCTestCase {
     func testDefaultWiggleDistanceIsLargeEnoughToBeVisible() {
-        XCTAssertEqual(ActivitySettings.defaults.wiggleDistance, 16)
+        XCTAssertEqual(ActivitySettings.defaults.wiggleDistance, 40)
     }
 
     func testWiggleDistanceCannotExceedSliderMaximum() {
@@ -17,7 +17,7 @@ final class IdleWiggleControllerTests: XCTestCase {
         )
 
         XCTAssertEqual(settings.wiggleDistance, ActivitySettings.maximumWiggleDistance)
-        XCTAssertEqual(ActivitySettings.maximumWiggleDistance, 120)
+        XCTAssertEqual(ActivitySettings.maximumWiggleDistance, 160)
     }
 
     func testDisabledSettingsNeverWiggle() {
