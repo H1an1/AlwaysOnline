@@ -12,7 +12,8 @@ DMG_BACKGROUND_NAME="DmgBackground.png"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
-APP_ICON_SOURCE_PATH="$ROOT_DIR/Resources/AppIcon.icns"
+APP_ICON_SOURCE_PATH="$ROOT_DIR/Resources/AppIcon.icon"
+APP_ICON_NAME="AppIcon"
 
 clear_bundle_finder_info() {
     local bundle_path="$1"
@@ -80,9 +81,21 @@ cp "$BIN_DIR/AlwaysOnline" "$MACOS_DIR/AlwaysOnline"
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$ROOT_DIR/Resources/MenuBarIcon.png" "$RESOURCES_DIR/MenuBarIcon.png"
 cp "$ROOT_DIR/Resources/MenuBarIconShake.png" "$RESOURCES_DIR/MenuBarIconShake.png"
-APP_ICON_FILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$CONTENTS_DIR/Info.plist")"
-APP_ICON_FILE_NAME="${APP_ICON_FILE_NAME%.icns}.icns"
-cp "$APP_ICON_SOURCE_PATH" "$RESOURCES_DIR/$APP_ICON_FILE_NAME"
+# Compile the Tahoe-native Liquid Glass icon (.icon) into the bundle.
+# Emits Resources/Assets.car (macOS 26 glass container, via CFBundleIconName)
+# and Resources/AppIcon.icns (fallback for older macOS, via CFBundleIconFile).
+ACTOOL_PARTIAL_PLIST="$(mktemp -t actool-partial)"
+xcrun actool "$APP_ICON_SOURCE_PATH" \
+    --compile "$RESOURCES_DIR" \
+    --app-icon "$APP_ICON_NAME" \
+    --output-partial-info-plist "$ACTOOL_PARTIAL_PLIST" \
+    --minimum-deployment-target 26.0 \
+    --platform macosx \
+    --target-device mac \
+    --development-region en \
+    --enable-on-demand-resources NO \
+    --output-format human-readable-text --notices --warnings --errors
+rm -f "$ACTOOL_PARTIAL_PLIST"
 chmod +x "$MACOS_DIR/AlwaysOnline"
 
 sign_bundle "$APP_DIR"
