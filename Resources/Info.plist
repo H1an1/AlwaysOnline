@@ -8,12 +8,12 @@
 	<string>AlwaysOnline</string>
 	<key>CFBundleExecutable</key>
 	<string>AlwaysOnline</string>
-	<key>CFBundleIdentifier</key>
-	<string>io.github.h1an1.AlwaysOnline</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.h1an1.AlwaysOnline</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -21,9 +21,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-    <string>0.1.12</string>
+	<string>0.2.0</string>
 	<key>CFBundleVersion</key>
-    <string>13</string>
+	<string>14</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
