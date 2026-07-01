@@ -15,6 +15,14 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 APP_ICON_SOURCE_PATH="$ROOT_DIR/Resources/AppIcon.icon"
 APP_ICON_NAME="AppIcon"
 
+# Code signing + notarization configuration.
+# Override any of these via environment variables when invoking the script, e.g.
+#   NOTARIZE=0 ./scripts/build_app.sh   # fast local build: sign only, skip Apple notary
+SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-AC_PASSWORD}"
+NOTARIZE="${NOTARIZE:-1}"
+NOTARIZE_ZIP_PATH="$ROOT_DIR/dist/AlwaysOnline.notarize.zip"
+
 clear_bundle_finder_info() {
     local bundle_path="$1"
 
@@ -34,13 +42,11 @@ clear_bundle_finder_info() {
 
 sign_bundle() {
     local bundle_path="$1"
-    local bundle_id
-
-    bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle_path/Contents/Info.plist")"
 
     for _ in 1 2 3 4 5; do
         clear_bundle_finder_info "$bundle_path"
-        if codesign --force --deep --sign - --requirements "=designated => identifier \"$bundle_id\"" "$bundle_path"; then
+        if codesign --force --options runtime --timestamp \
+            --sign "$SIGN_IDENTITY" "$bundle_path"; then
             if verify_bundle_clean "$bundle_path"; then
                 return 0
             fi
@@ -67,6 +73,45 @@ verify_bundle_clean() {
     codesign --verify --deep --strict --verbose=4 "$bundle_path" >&2 || true
     xattr -lr "$bundle_path" >&2 || true
     return 1
+}
+
+# Submit an artifact (.zip wrapping the .app, or a .dmg) to Apple's notary
+# service, wait for the verdict, and fail loudly with the log if it is rejected.
+notarize_artifact() {
+    local artifact_path="$1"
+    local submit_output submission_id status
+
+    echo "Submitting $(basename "$artifact_path") to Apple notary service (this can take a few minutes)..."
+    submit_output="$(xcrun notarytool submit "$artifact_path" \
+        --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)" || true
+    echo "$submit_output"
+
+    submission_id="$(printf '%s\n' "$submit_output" | awk -F'[[:space:]]+' '/^[[:space:]]*id:/ {print $3; exit}')"
+    status="$(printf '%s\n' "$submit_output" | awk -F'[[:space:]]+' '/^[[:space:]]*status:/ {print $3}' | tail -1)"
+
+    if [[ "$status" != "Accepted" ]]; then
+        echo "Notarization failed for $artifact_path (status: ${status:-unknown})" >&2
+        if [[ -n "$submission_id" ]]; then
+            echo "Fetching notary log for submission $submission_id:" >&2
+            xcrun notarytool log "$submission_id" --keychain-profile "$NOTARY_PROFILE" >&2 || true
+        fi
+        return 1
+    fi
+}
+
+# Notarize the .app bundle, then staple the ticket so Gatekeeper accepts it
+# offline. The staple writes a file inside the bundle, so it survives the later
+# ZIP and DMG packaging steps.
+notarize_and_staple_app() {
+    local app_path="$1"
+
+    rm -f "$NOTARIZE_ZIP_PATH"
+    COPYFILE_DISABLE=1 ditto --norsrc --noextattr --noqtn -c -k --keepParent "$app_path" "$NOTARIZE_ZIP_PATH"
+    notarize_artifact "$NOTARIZE_ZIP_PATH"
+    rm -f "$NOTARIZE_ZIP_PATH"
+
+    xcrun stapler staple "$app_path"
+    spctl --assess --type execute --verbose=4 "$app_path"
 }
 
 cd "$ROOT_DIR"
@@ -99,6 +144,12 @@ rm -f "$ACTOOL_PARTIAL_PLIST"
 chmod +x "$MACOS_DIR/AlwaysOnline"
 
 sign_bundle "$APP_DIR"
+
+if [[ "$NOTARIZE" == "1" ]]; then
+    notarize_and_staple_app "$APP_DIR"
+else
+    echo "NOTARIZE=0 set: skipping Apple notarization (local build only, not for distribution)."
+fi
 
 rm -f "$ZIP_PATH"
 COPYFILE_DISABLE=1 ditto --norsrc --noextattr --noqtn -c -k --keepParent "$APP_DIR" "$ZIP_PATH"
@@ -199,6 +250,17 @@ FINDER_DISK_NAME=""
 hdiutil convert "$DMG_RW_PATH" -format UDZO -o "$DMG_PATH" >/dev/null
 rm -f "$DMG_RW_PATH"
 verify_bundle_clean "$APP_DIR"
+
+if [[ "$NOTARIZE" == "1" ]]; then
+    notarize_artifact "$DMG_PATH"
+    xcrun stapler staple "$DMG_PATH"
+    # Verify via the stapled notarization ticket. A DMG is not codesigned, so
+    # `spctl` would report "no usable signature" here even though Gatekeeper
+    # accepts it on download — stapler validate is the correct offline check.
+    xcrun stapler validate "$DMG_PATH"
+    # Confirm what a downloader actually sees: assess the app the DMG carries.
+    spctl --assess --type execute --verbose=4 "$APP_DIR"
+fi
 
 echo "Built $APP_DIR"
 echo "Packaged $ZIP_PATH"

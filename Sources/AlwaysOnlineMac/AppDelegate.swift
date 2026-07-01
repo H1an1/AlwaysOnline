@@ -77,6 +77,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApplication.shared.terminate(nil)
     }
 
+    /// Inert action bound to the "Wiggle Distance" heading so it renders as a
+    /// normal (black, enabled) row without doing anything when clicked.
+    @objc private func noop() {}
+
     private func loadSettings() -> ActivitySettings {
         var loaded = ActivitySettings.defaults
 
@@ -127,8 +131,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         titleItem.isEnabled = false
         nextMenu.addItem(titleItem)
 
+        // Fixed label + checkmark state, matching the macOS system-menu idiom
+        // (Wi-Fi, Bluetooth): the title never changes, and the check simply
+        // reflects whether the feature is currently on. This removes the
+        // "Enabled vs Disabled — which is the current state?" ambiguity.
         let enabledItem = NSMenuItem(
-            title: settings.isEnabled ? "Enabled" : "Disabled",
+            title: "Enabled",
             action: #selector(toggleEnabled),
             keyEquivalent: ""
         )
@@ -181,22 +189,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func addWiggleDistanceItem(to menu: NSMenu) {
+        // The title is a real menu item, so AppKit positions it exactly like the
+        // other rows ("Enabled", "Quit"). Manual inset math in a custom view
+        // never matched the system's checkmark-gutter reliably across macOS
+        // versions, so we stop guessing and let the framework place the text.
+        let titleItem = NSMenuItem(
+            title: StatusItemPresentation.wiggleDistanceMenuTitle,
+            action: #selector(noop),
+            keyEquivalent: ""
+        )
+        // Keep the row visually "enabled" (black text, system-positioned) but
+        // inert: a disabled item is force-grayed by AppKit and even an
+        // attributedTitle can't override that, so instead we bind a no-op action
+        // and disable auto-enabling for this one item.
+        titleItem.target = self
+        menu.addItem(titleItem)
+
+        // The custom view below carries only the slider and its scale labels —
+        // no text that needs to align with menu rows.
         let stops = ActivitySettings.wiggleDistanceStops
         let width: CGFloat = 340
-        let textLeft: CGFloat = 23
-        let contentRight: CGFloat = 24
-        let trackWidth = width - textLeft - contentRight
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 62))
-
-        let titleLabel = NSTextField(labelWithString: StatusItemPresentation.wiggleDistanceMenuTitle)
-        titleLabel.font = .menuFont(ofSize: NSFont.systemFontSize)
-        titleLabel.frame = NSRect(x: textLeft, y: 42, width: trackWidth, height: 20)
-        view.addSubview(titleLabel)
+        let sideInset: CGFloat = 20
+        let trackWidth = width - sideInset * 2
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 40))
 
         // Discrete slider that snaps between the preset stops; its value is the stop
         // index. The static scale labels below provide the read-out, so nothing needs
         // to repaint during the drag (which an NSMenu won't do for custom views).
-        let slider = NSSlider(frame: NSRect(x: textLeft, y: 18, width: trackWidth, height: 20))
+        let slider = NSSlider(frame: NSRect(x: sideInset, y: 18, width: trackWidth, height: 20))
         slider.minValue = 0
         slider.maxValue = Double(stops.count - 1)
         slider.numberOfTickMarks = stops.count
@@ -220,7 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             label.textColor = .secondaryLabelColor
             label.alignment = .center
             let labelWidth: CGFloat = 34
-            let tickCenter = textLeft + knobInset / 2 + usableWidth * CGFloat(index) / CGFloat(stops.count - 1)
+            let tickCenter = sideInset + knobInset / 2 + usableWidth * CGFloat(index) / CGFloat(stops.count - 1)
             var x = tickCenter - labelWidth / 2
             x = min(max(x, 0), width - labelWidth)
             label.frame = NSRect(x: x, y: 2, width: labelWidth, height: 13)
